@@ -20,7 +20,26 @@ class AuthKtTest {
             contentType(ContentType.Application.Json)
             setBody(AuthLogin(user.safeUsername, VALID_PASSWORD))
         }
-        assertEquals(res.status, HttpStatusCode.OK, res.body())
+        assertEquals(HttpStatusCode.OK, res.status, res.body())
+    }
+
+    @Test
+    fun invalidLogin_BadUsername() = roseTest {
+        val res = client.post("/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(AuthLogin(randomUsername(), VALID_PASSWORD))
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status, res.body())
+    }
+
+    @Test
+    fun invalidLogin_BadPassword() = roseTest {
+        val user = registerRandomUser()
+        val res = client.post("/auth/login") {
+            contentType(ContentType.Application.Json)
+            setBody(AuthLogin(user.safeUsername, "meowmewowmewo"))
+        }
+        assertEquals(HttpStatusCode.Unauthorized, res.status, res.body())
     }
 
     @Test
