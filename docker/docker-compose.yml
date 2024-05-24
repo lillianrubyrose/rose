@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - 5432:5432
+    restart: always
+    environment:
+      POSTGRES_DB: rose_dev
+      POSTGRES_USER: rose
+      POSTGRES_PASSWORD: password
+
+  postgres-test:
+    image: postgres:16-alpine
+    ports:
+      - 5433:5432
+    restart: always
+    environment:
+      POSTGRES_DB: rose_test
+      POSTGRES_USER: rose
+      POSTGRES_PASSWORD: password
