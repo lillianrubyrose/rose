@@ -3,10 +3,11 @@ package cc.sapphiretech.rose
 import cc.sapphiretech.rose.db.UsersTable
 import cc.sapphiretech.rose.ext.lazyInject
 import cc.sapphiretech.rose.ext.transaction
+import cc.sapphiretech.rose.models.RoseRole
 import cc.sapphiretech.rose.models.RoseUser
 import cc.sapphiretech.rose.routes.AuthTest.Companion.VALID_PASSWORD
-import cc.sapphiretech.rose.routes.AuthRegister
 import cc.sapphiretech.rose.services.JWTService
+import cc.sapphiretech.rose.services.RoleService
 import cc.sapphiretech.rose.services.UserService
 import com.github.michaelbull.result.getOrThrow
 import io.ktor.client.plugins.contentnegotiation.*
@@ -28,17 +29,11 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
 
     private val userService by lazyInject<UserService>()
     private val jwtService by lazyInject<JWTService>()
+    private val roleService by lazyInject<RoleService>()
 
     suspend fun registerRandomUser(): RoseUser {
-        val username = randomUsername()
-        client.post("/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody(AuthRegister(username, VALID_PASSWORD))
-        }
-        return userService.findByUsername(username)
-            .getOrThrow { RuntimeException("randomUsername() returned an invalid username") } ?: throw RuntimeException(
-            "Couldn't find newly registered user '${username}. Something bad is going on!!"
-        )
+        return userService.create(randomUsername(), VALID_PASSWORD)
+            .getOrThrow { RuntimeException("randomUsername() returned an invalid username") }
     }
 
     suspend fun registerAdministrator(): RoseUser {
@@ -54,6 +49,11 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
         return user
     }
 
+    suspend fun createRandomRole(): RoseRole {
+        return roleService.create(randomUsername())
+            .getOrThrow { RuntimeException("randomUsername() returned an invalid name") }
+    }
+
     private suspend fun ensureRequiresAuthorization(path: String, method: HttpMethod, body: Any? = null) {
         val res = client.request(path) {
             this.method = method
@@ -65,20 +65,30 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
         assertEquals(HttpStatusCode.Unauthorized, res.status)
     }
 
-    suspend fun authGet(asUser: Int, path: String, skipAuthCheck: Boolean = false, block: HttpRequestBuilder.() -> Unit): HttpResponse {
-        if(!skipAuthCheck) {
+    suspend fun authGet(
+        asUser: Int,
+        path: String,
+        skipAuthCheck: Boolean = false,
+        block: HttpRequestBuilder.() -> Unit
+    ): HttpResponse {
+        if (!skipAuthCheck) {
             ensureRequiresAuthorization(path, HttpMethod.Get)
         }
 
         val token = jwtService.createAccessToken(asUser)
-        return client.post(path) {
+        return client.get(path) {
             header(HttpHeaders.Authorization, "Bearer $token")
             block()
         }
     }
 
-    suspend fun authPost(asUser: Int, path: String, skipAuthCheck: Boolean = false, block: HttpRequestBuilder.() -> Unit): HttpResponse {
-        if(!skipAuthCheck) {
+    suspend fun authPost(
+        asUser: Int,
+        path: String,
+        skipAuthCheck: Boolean = false,
+        block: HttpRequestBuilder.() -> Unit
+    ): HttpResponse {
+        if (!skipAuthCheck) {
             ensureRequiresAuthorization(path, HttpMethod.Post)
         }
 
@@ -94,6 +104,10 @@ fun roseTest(block: suspend RoseTestBuilder.() -> Unit) = testApplication {
     application {
         configureApp(Config.forTest())
     }
+
+    // Have to do this so the application and by extension Koin gets initialized as RoseTestBuilder injects services.
+    // Why the setup is done upon first request is beyond me.
+    client.get("/")
 
     block(RoseTestBuilder(this))
 }

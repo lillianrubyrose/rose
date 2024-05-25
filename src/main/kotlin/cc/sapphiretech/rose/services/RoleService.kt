@@ -1,7 +1,6 @@
 package cc.sapphiretech.rose.services
 
 import cc.sapphiretech.rose.db.RolesTable
-import cc.sapphiretech.rose.db.UsersTable
 import cc.sapphiretech.rose.ext.transaction
 import cc.sapphiretech.rose.ksp.GenericEnumError
 import cc.sapphiretech.rose.models.RosePermission
@@ -9,9 +8,6 @@ import cc.sapphiretech.rose.models.RoseRole
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.map
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -59,7 +55,7 @@ class RoleService {
     }
 
     suspend fun getAll(): List<RoseRole> {
-        return RolesTable.selectAll().map { it.mapToRoseRole() }
+        return transaction { RolesTable.selectAll().map { it.mapToRoseRole() } }
     }
 
     suspend fun create(name: String): Result<RoseRole, CreateError> {

@@ -7,6 +7,7 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import org.junit.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class RoleTest {
     @Test
@@ -37,5 +38,15 @@ class RoleTest {
         ensureDoesntWork("really_long_username_123456789")
         ensureDoesntWork("🏳️‍⚧️🏳️‍⚧️🏳️‍⚧️🏳️‍⚧️")
         ensureDoesntWork("hello-world")
+    }
+
+    @Test
+    fun validGetAll() = roseTest {
+        createRandomRole()
+
+        val admin = registerAdministrator()
+        val res = authGet(admin.id, "/role") {}
+        assertEquals(HttpStatusCode.OK, res.status)
+        assertTrue(res.body<RoleGetAllResponse>().roles.isNotEmpty())
     }
 }

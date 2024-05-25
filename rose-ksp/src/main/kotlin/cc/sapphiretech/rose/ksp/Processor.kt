@@ -1,7 +1,9 @@
 package cc.sapphiretech.rose.ksp
 
 import com.google.devtools.ksp.processing.*
-import com.google.devtools.ksp.symbol.*
+import com.google.devtools.ksp.symbol.ClassKind
+import com.google.devtools.ksp.symbol.KSAnnotated
+import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.validate
 import dev.turingcomplete.textcaseconverter.StandardTextCases
 import java.io.OutputStream
@@ -32,7 +34,8 @@ class Processor(@Suppress("unused") private val logger: KSPLogger, private val g
             file += "fun ${symbol.qualifiedName?.asString()}.toWebError(): cc.sapphiretech.rose.models.BasicWebResponse {\n"
             file += "\treturn when(this) {\n"
 
-            for (variant in symbol.declarations.filterIsInstance<KSClassDeclaration>().filter { it.classKind == ClassKind.ENUM_ENTRY }) {
+            for (variant in symbol.declarations.filterIsInstance<KSClassDeclaration>()
+                .filter { it.classKind == ClassKind.ENUM_ENTRY }) {
                 file += "\t\t${variant.qualifiedName?.asString()} -> cc.sapphiretech.rose.models.BasicWebResponse(\"${
                     StandardTextCases.PASCAL_CASE.convertTo(
                         StandardTextCases.SCREAMING_SNAKE_CASE,

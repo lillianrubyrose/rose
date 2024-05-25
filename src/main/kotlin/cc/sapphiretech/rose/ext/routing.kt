@@ -47,17 +47,6 @@ inline fun Route.authGet(
 }
 
 @KtorDsl
-inline fun <reified R : Any> Route.authGet(
-    path: String,
-    requiredPermissions: Array<RosePermission>? = null,
-    crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(R) -> Unit
-): Route {
-    return authGet(path, requiredPermissions) {
-        body(call.receive())
-    }
-}
-
-@KtorDsl
 inline fun Route.authPost(
     path: String,
     requiredPermissions: Array<RosePermission>? = null,

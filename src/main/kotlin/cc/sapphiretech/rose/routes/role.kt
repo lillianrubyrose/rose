@@ -1,8 +1,10 @@
 package cc.sapphiretech.rose.routes
 
+import cc.sapphiretech.rose.ext.authGet
 import cc.sapphiretech.rose.ext.authPost
 import cc.sapphiretech.rose.generated.toWebError
 import cc.sapphiretech.rose.models.RosePermission
+import cc.sapphiretech.rose.models.RoseRoleDTO
 import cc.sapphiretech.rose.services.RoleService
 import com.github.michaelbull.result.getOrElse
 import io.ktor.http.*
@@ -15,8 +17,12 @@ import org.koin.ktor.ext.inject
 @Serializable
 data class RoleCreate(val name: String)
 
+@Serializable
+data class RoleGetAllResponse(val roles: List<RoseRoleDTO>)
+
 fun Routing.configureRoleRoutes() {
     postRoleCreate()
+    getAllRoles()
 }
 
 fun Routing.postRoleCreate() {
@@ -29,5 +35,13 @@ fun Routing.postRoleCreate() {
         }
 
         call.respond(HttpStatusCode.Created, role.toDTO())
+    }
+}
+
+fun Routing.getAllRoles() {
+    val roleService by inject<RoleService>()
+
+    authGet("/role", arrayOf(RosePermission.MANAGE_ROLES)) {
+        call.respond(HttpStatusCode.OK, RoleGetAllResponse(roleService.getAll().map { it.toDTO() }))
     }
 }
