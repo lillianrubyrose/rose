@@ -1,5 +1,6 @@
 package cc.sapphiretech.rose.routes
 
+import cc.sapphiretech.rose.generated.toWebError
 import cc.sapphiretech.rose.models.BasicWebResponse
 import cc.sapphiretech.rose.services.JWTService
 import cc.sapphiretech.rose.services.UserService

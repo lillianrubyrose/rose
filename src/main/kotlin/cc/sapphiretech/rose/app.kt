@@ -8,6 +8,6 @@ fun Application.configureApp(config: Config) {
     configureDatabase()
     configureMisc()
     configureCors()
-    configureRouting()
     configureAuthentication()
+    configureRouting()
 }

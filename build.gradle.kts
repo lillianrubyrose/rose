@@ -6,6 +6,7 @@ plugins {
     kotlin("jvm") version "2.0.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.0.0"
     id("io.ktor.plugin") version "2.3.11"
+    id("com.google.devtools.ksp") version "2.0.0-1.0.21"
 }
 
 group = "cc.sapphiretech"
@@ -24,6 +25,9 @@ repositories {
 }
 
 dependencies {
+    implementation(project(":rose-ksp"))
+    ksp(project(":rose-ksp"))
+
     implementation("io.ktor:ktor-server-core-jvm")
     implementation("io.ktor:ktor-server-netty-jvm")
     implementation("io.ktor:ktor-server-cors-jvm")
@@ -57,7 +61,15 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host-jvm:2.3.11")
 }
 
-kotlin.sourceSets.all {
-    languageSettings.optIn("io.ktor.server.locations.KtorExperimentalLocationsAPI")
+kotlin {
+    sourceSets.main {
+        kotlin.srcDir("build/generated/ksp/main/kotlin")
+    }
+    sourceSets.test {
+        kotlin.srcDir("build/generated/ksp/test/kotlin")
+    }
+    sourceSets.all {
+        languageSettings.optIn("io.ktor.server.locations.KtorExperimentalLocationsAPI")
+    }
 }
 

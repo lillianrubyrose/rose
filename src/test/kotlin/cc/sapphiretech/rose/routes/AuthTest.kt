@@ -8,7 +8,7 @@ import io.ktor.http.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-class AuthKtTest {
+class AuthTest {
     companion object {
         const val VALID_PASSWORD = "password"
     }

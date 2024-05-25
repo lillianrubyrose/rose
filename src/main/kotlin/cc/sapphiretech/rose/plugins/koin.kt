@@ -2,6 +2,7 @@ package cc.sapphiretech.rose.plugins
 
 import cc.sapphiretech.rose.Config
 import cc.sapphiretech.rose.services.JWTService
+import cc.sapphiretech.rose.services.RoleService
 import cc.sapphiretech.rose.services.UserService
 import io.ktor.server.application.*
 import org.koin.dsl.module
@@ -13,6 +14,7 @@ fun Application.configureKoin(config: Config) {
             single { config }
             single { JWTService() }
             single { UserService() }
+            single { RoleService() }
         })
     }
 }
