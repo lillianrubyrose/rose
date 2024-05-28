@@ -98,6 +98,16 @@ class UserService {
         return user
     }
 
+    suspend fun removeRole(user: RoseUser, role: RoseRole): RoseUser {
+        user.roles.remove(role)
+        transaction {
+            UsersTable.update({ UsersTable.id.eq(user.id) }) {
+                it[roles] = user.roles.map { r -> r.id }
+            }
+        }
+        return user
+    }
+
     @GenericEnumError
     enum class CreateError {
         InvalidUsername,

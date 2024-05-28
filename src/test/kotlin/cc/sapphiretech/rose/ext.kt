@@ -30,7 +30,7 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
         }
     }
 
-    private val userService by lazyInject<UserService>()
+    val userService by lazyInject<UserService>()
     private val jwtService by lazyInject<JWTService>()
     private val roleService by lazyInject<RoleService>()
 
@@ -51,7 +51,7 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
         return user
     }
 
-    suspend fun registerAdministrator(): RoseUser {
+    suspend fun registerSuperuser(): RoseUser {
         val user = registerRandomUser()
         user.superuser = true
 
@@ -151,6 +151,52 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
         }
         if (!skipAuthCheck) {
             ensureRequiresAuthorization(path, HttpMethod.Post, requiredPermissions, body)
+        }
+        return res
+    }
+
+    suspend fun authPut(
+        asUser: Int,
+        path: String,
+        skipAuthCheck: Boolean = false,
+        requiredPermissions: Array<RosePermission>? = null,
+        body: Any?,
+        block: HttpRequestBuilder.() -> Unit = {}
+    ): HttpResponse {
+        val token = jwtService.createAccessToken(asUser)
+        val res = client.put(path) {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            block()
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }
+        if (!skipAuthCheck) {
+            ensureRequiresAuthorization(path, HttpMethod.Put, requiredPermissions, body)
+        }
+        return res
+    }
+
+    suspend fun authDelete(
+        asUser: Int,
+        path: String,
+        skipAuthCheck: Boolean = false,
+        requiredPermissions: Array<RosePermission>? = null,
+        body: Any?,
+        block: HttpRequestBuilder.() -> Unit = {}
+    ): HttpResponse {
+        val token = jwtService.createAccessToken(asUser)
+        val res = client.delete(path) {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            block()
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+        }
+        if (!skipAuthCheck) {
+            ensureRequiresAuthorization(path, HttpMethod.Delete, requiredPermissions, body)
         }
         return res
     }

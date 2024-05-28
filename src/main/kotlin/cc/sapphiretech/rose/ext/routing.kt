@@ -12,6 +12,12 @@ import io.ktor.util.*
 import io.ktor.util.pipeline.*
 
 @KtorDsl
+fun ApplicationCall.authedUser(): RoseUser {
+    return principal<RoseUser>()
+        ?: throw RuntimeException("Trying to get authenticated user in route that doesn't require authentication")
+}
+
+@KtorDsl
 inline fun Route.authRoute(
     path: String,
     method: HttpMethod,
@@ -62,6 +68,46 @@ inline fun <reified R : Any> Route.authPost(
     crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(R) -> Unit
 ): Route {
     return authPost(path, requiredPermissions) {
+        body(call.receive())
+    }
+}
+
+@KtorDsl
+inline fun Route.authPut(
+    path: String,
+    requiredPermissions: Array<RosePermission>? = null,
+    crossinline body: suspend PipelineContext<Unit, ApplicationCall>.() -> Unit
+): Route {
+    return authRoute(path, HttpMethod.Put, requiredPermissions, body)
+}
+
+@KtorDsl
+inline fun <reified R : Any> Route.authPut(
+    path: String,
+    requiredPermissions: Array<RosePermission>? = null,
+    crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(R) -> Unit
+): Route {
+    return authPut(path, requiredPermissions) {
+        body(call.receive())
+    }
+}
+
+@KtorDsl
+inline fun Route.authDelete(
+    path: String,
+    requiredPermissions: Array<RosePermission>? = null,
+    crossinline body: suspend PipelineContext<Unit, ApplicationCall>.() -> Unit
+): Route {
+    return authRoute(path, HttpMethod.Delete, requiredPermissions, body)
+}
+
+@KtorDsl
+inline fun <reified R : Any> Route.authDelete(
+    path: String,
+    requiredPermissions: Array<RosePermission>? = null,
+    crossinline body: suspend PipelineContext<Unit, ApplicationCall>.(R) -> Unit
+): Route {
+    return authDelete(path, requiredPermissions) {
         body(call.receive())
     }
 }

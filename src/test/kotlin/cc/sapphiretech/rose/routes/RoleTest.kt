@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class RoleTest {
     @Test
     fun validCreate() = roseTest {
-        val admin = registerAdministrator()
+        val admin = registerSuperuser()
         val res = authPost(
             admin.id,
             "/role",
@@ -24,7 +24,7 @@ class RoleTest {
 
     @Test
     fun invalidCreate_BadName() = roseTest {
-        val admin = registerAdministrator()
+        val admin = registerSuperuser()
         suspend fun ensureDoesntWork(name: String) {
             val res = authPost(admin.id, "/role", skipAuthCheck = true, body = RoleCreate(name))
             assertEquals(HttpStatusCode.UnprocessableEntity, res.status, res.body())
@@ -42,7 +42,7 @@ class RoleTest {
     fun validGetAll() = roseTest {
         createRandomRole()
 
-        val admin = registerAdministrator()
+        val admin = registerSuperuser()
         val res = authGet(admin.id, "/role")
         assertEquals(HttpStatusCode.OK, res.status)
         assertTrue(res.body<RoleGetAllResponse>().roles.isNotEmpty())
