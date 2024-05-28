@@ -4,15 +4,13 @@ import cc.sapphiretech.rose.db.UsersTable
 import cc.sapphiretech.rose.ext.lazyInject
 import cc.sapphiretech.rose.ext.transaction
 import cc.sapphiretech.rose.ksp.GenericEnumError
+import cc.sapphiretech.rose.models.RoseRole
 import cc.sapphiretech.rose.models.RoseUser
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import org.jetbrains.exposed.sql.Query
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.insertReturning
-import org.jetbrains.exposed.sql.selectAll
 import pm.lily.argon.argonHash
 
 private suspend fun ResultRow.toRoseUser(roleService: RoleService): RoseUser {
@@ -88,6 +86,16 @@ class UserService {
         }.toRoseUser(roleService)
 
         return Ok(user)
+    }
+
+    suspend fun addRole(user: RoseUser, role: RoseRole): RoseUser {
+        user.roles.add(role)
+        transaction {
+            UsersTable.update({ UsersTable.id.eq(user.id) }) {
+                it[roles] = user.roles.map { r -> r.id }
+            }
+        }
+        return user
     }
 
     @GenericEnumError

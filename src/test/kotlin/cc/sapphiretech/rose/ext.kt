@@ -3,6 +3,7 @@ package cc.sapphiretech.rose
 import cc.sapphiretech.rose.db.UsersTable
 import cc.sapphiretech.rose.ext.lazyInject
 import cc.sapphiretech.rose.ext.transaction
+import cc.sapphiretech.rose.models.RosePermission
 import cc.sapphiretech.rose.models.RoseRole
 import cc.sapphiretech.rose.models.RoseUser
 import cc.sapphiretech.rose.routes.AuthTest.Companion.VALID_PASSWORD
@@ -10,6 +11,7 @@ import cc.sapphiretech.rose.services.JWTService
 import cc.sapphiretech.rose.services.RoleService
 import cc.sapphiretech.rose.services.UserService
 import com.github.michaelbull.result.getOrThrow
+import com.github.michaelbull.result.map
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -19,6 +21,7 @@ import io.ktor.server.testing.*
 import org.jetbrains.exposed.sql.update
 import kotlin.random.Random
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 class RoseTestBuilder(clientProvider: ClientProvider) {
     val client = clientProvider.createClient {
@@ -31,9 +34,21 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
     private val jwtService by lazyInject<JWTService>()
     private val roleService by lazyInject<RoleService>()
 
-    suspend fun registerRandomUser(): RoseUser {
-        return userService.create(randomUsername(), VALID_PASSWORD)
-            .getOrThrow { RuntimeException("randomUsername() returned an invalid username") }
+    suspend fun registerRandomUser(permissions: Array<RosePermission>? = null): RoseUser {
+        var name = randomUsername()
+        while (userService.findByUsername(name).map { it != null }.getOrThrow { RuntimeException("DB Error") }) {
+            name = randomUsername()
+        }
+
+        val user = userService.create(name, VALID_PASSWORD)
+            .getOrThrow { RuntimeException("randomUsername() returned an invalid username: $name") }
+
+        if (permissions != null) {
+            val role = createRandomRole(permissions)
+            return userService.addRole(user, role)
+        }
+
+        return user
     }
 
     suspend fun registerAdministrator(): RoseUser {
@@ -49,54 +64,95 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
         return user
     }
 
-    suspend fun createRandomRole(): RoseRole {
-        return roleService.create(randomUsername())
-            .getOrThrow { RuntimeException("randomUsername() returned an invalid name") }
+    suspend fun createRandomRole(permissions: Array<RosePermission>? = null): RoseRole {
+        var name = randomUsername()
+        while (roleService.findByName(name).map { it != null }.getOrThrow { RuntimeException("DB Error") }) {
+            name = randomUsername()
+        }
+
+        val role = roleService.create(name)
+            .getOrThrow { RuntimeException("randomUsername() returned an invalid name: $name") }
+
+        if (permissions != null) {
+            return roleService.addPermissions(role, *permissions)
+        }
+
+        return role
     }
 
-    private suspend fun ensureRequiresAuthorization(path: String, method: HttpMethod, body: Any? = null) {
-        val res = client.request(path) {
+    private suspend fun ensureRequiresAuthorization(
+        path: String,
+        method: HttpMethod,
+        requiredPermissions: Array<RosePermission>? = null,
+        body: Any? = null
+    ) {
+        val builder: HttpRequestBuilder.() -> Unit = {
             this.method = method
             if (method != HttpMethod.Get && body != null) {
                 contentType(ContentType.Application.Json)
                 setBody(body)
             }
         }
+
+        val res = client.request(path, builder)
         assertEquals(HttpStatusCode.Unauthorized, res.status)
+
+        if (requiredPermissions != null) {
+            val unauthorizedUser = registerRandomUser()
+            val unauthorizedRes = client.request(path) {
+                builder()
+                header(HttpHeaders.Authorization, "Bearer ${jwtService.createAccessToken(unauthorizedUser.id)}")
+            }
+            assertEquals(HttpStatusCode.Unauthorized, unauthorizedRes.status)
+
+            val authorizedUser = registerRandomUser(requiredPermissions)
+            val authorizedRes = client.request(path) {
+                builder()
+                header(HttpHeaders.Authorization, "Bearer ${jwtService.createAccessToken(authorizedUser.id)}")
+            }
+            assertNotEquals(HttpStatusCode.Unauthorized, authorizedRes.status)
+        }
     }
 
     suspend fun authGet(
         asUser: Int,
         path: String,
         skipAuthCheck: Boolean = false,
-        block: HttpRequestBuilder.() -> Unit
+        requiredPermissions: Array<RosePermission>? = null,
+        block: HttpRequestBuilder.() -> Unit = {}
     ): HttpResponse {
-        if (!skipAuthCheck) {
-            ensureRequiresAuthorization(path, HttpMethod.Get)
-        }
-
         val token = jwtService.createAccessToken(asUser)
-        return client.get(path) {
+        val res = client.get(path) {
             header(HttpHeaders.Authorization, "Bearer $token")
             block()
         }
+        if (!skipAuthCheck) {
+            ensureRequiresAuthorization(path, HttpMethod.Get, requiredPermissions)
+        }
+        return res
     }
 
     suspend fun authPost(
         asUser: Int,
         path: String,
         skipAuthCheck: Boolean = false,
-        block: HttpRequestBuilder.() -> Unit
+        requiredPermissions: Array<RosePermission>? = null,
+        body: Any?,
+        block: HttpRequestBuilder.() -> Unit = {}
     ): HttpResponse {
-        if (!skipAuthCheck) {
-            ensureRequiresAuthorization(path, HttpMethod.Post)
-        }
-
         val token = jwtService.createAccessToken(asUser)
-        return client.post(path) {
+        val res = client.post(path) {
             header(HttpHeaders.Authorization, "Bearer $token")
             block()
+            if (body != null) {
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
         }
+        if (!skipAuthCheck) {
+            ensureRequiresAuthorization(path, HttpMethod.Post, requiredPermissions, body)
+        }
+        return res
     }
 }
 

@@ -8,7 +8,7 @@ data class RoseRole(
     val safeName: String,
     val displayName: String,
     val inheritPermissionsFrom: MutableSet<RoseRole>,
-    val permissions: MutableCollection<RosePermission>
+    val permissions: MutableSet<RosePermission>
 ) {
     fun hasPermission(permission: RosePermission): Boolean =
         permissions.contains(permission) || inheritPermissionsFrom.any { it.hasPermission(permission) }

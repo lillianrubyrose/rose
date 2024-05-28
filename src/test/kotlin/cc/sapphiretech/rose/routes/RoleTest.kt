@@ -1,9 +1,9 @@
 package cc.sapphiretech.rose.routes
 
+import cc.sapphiretech.rose.models.RosePermission
 import cc.sapphiretech.rose.randomUsername
 import cc.sapphiretech.rose.roseTest
 import io.ktor.client.call.*
-import io.ktor.client.request.*
 import io.ktor.http.*
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -13,22 +13,20 @@ class RoleTest {
     @Test
     fun validCreate() = roseTest {
         val admin = registerAdministrator()
-        val res = authPost(admin.id, "/role") {
-            contentType(ContentType.Application.Json)
-            setBody(RoleCreate(randomUsername()))
-        }
-        assertEquals(HttpStatusCode.Created, res.status)
+        val res = authPost(
+            admin.id,
+            "/role",
+            requiredPermissions = arrayOf(RosePermission.MANAGE_ROLES),
+            body = RoleCreate(randomUsername())
+        )
+        assertEquals(HttpStatusCode.Created, res.status, res.body())
     }
 
     @Test
     fun invalidCreate_BadName() = roseTest {
         val admin = registerAdministrator()
         suspend fun ensureDoesntWork(name: String) {
-            val res = authPost(admin.id, "/role", skipAuthCheck = true) {
-                contentType(ContentType.Application.Json)
-                setBody(RoleCreate(name))
-            }
-
+            val res = authPost(admin.id, "/role", skipAuthCheck = true, body = RoleCreate(name))
             assertEquals(HttpStatusCode.UnprocessableEntity, res.status, res.body())
         }
 
@@ -45,7 +43,7 @@ class RoleTest {
         createRandomRole()
 
         val admin = registerAdministrator()
-        val res = authGet(admin.id, "/role") {}
+        val res = authGet(admin.id, "/role")
         assertEquals(HttpStatusCode.OK, res.status)
         assertTrue(res.body<RoleGetAllResponse>().roles.isNotEmpty())
     }

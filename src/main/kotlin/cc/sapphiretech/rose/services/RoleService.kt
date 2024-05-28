@@ -8,11 +8,8 @@ import cc.sapphiretech.rose.models.RoseRole
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import org.jetbrains.exposed.sql.Query
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.insertReturning
-import org.jetbrains.exposed.sql.selectAll
 
 private suspend fun ResultRow.mapToRoseRole(): RoseRole {
     val inheritance = this[RolesTable.inheritPermissionsFrom].mapNotNullTo(mutableSetOf()) { id ->
@@ -80,6 +77,17 @@ class RoleService {
             }.single()
         }.mapToRoseRole()
         return Ok(role)
+    }
+
+    suspend fun addPermissions(role: RoseRole, vararg permissions: RosePermission): RoseRole {
+        role.permissions.addAll(permissions)
+        transaction {
+            RolesTable.update({ RolesTable.id.eq(role.id) }) {
+                it[RolesTable.permissions] = role.permissions.map { p -> p.value }
+            }
+        }
+
+        return role
     }
 
     private fun validName(name: String): Boolean = UserService.validUsername(name)
