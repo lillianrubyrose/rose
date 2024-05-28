@@ -70,7 +70,7 @@ class RoseTestBuilder(clientProvider: ClientProvider) {
             name = randomUsername()
         }
 
-        val role = roleService.create(name)
+        val role = roleService.create(0, name)
             .getOrThrow { RuntimeException("randomUsername() returned an invalid name: $name") }
 
         if (permissions != null) {

@@ -3,6 +3,7 @@ package cc.sapphiretech.rose
 import org.jetbrains.annotations.TestOnly
 
 data class PostgresConfig(val uri: String)
+data class MongoConfig(val uri: String)
 
 data class JWTConfig(
     val secret: String,
@@ -33,6 +34,7 @@ data class Config(
     val bindIp: String,
     val port: Int,
     val postgres: PostgresConfig,
+    val mongo: MongoConfig,
     val jwt: JWTConfig
 ) {
     companion object {
@@ -41,6 +43,7 @@ data class Config(
             System.getenv("ROSE_BIND_IP"),
             System.getenv("ROSE_PORT").toInt(),
             PostgresConfig(System.getenv("ROSE_POSTGRES_URI")),
+            MongoConfig(System.getenv("ROSE_MONGO_URI")),
             JWTConfig(
                 System.getenv("ROSE_JWT_SECRET"),
                 System.getenv("ROSE_JWT_DOMAIN"),
@@ -55,6 +58,7 @@ data class Config(
             "0.0.0.0",
             0,
             PostgresConfig("jdbc:postgresql://localhost:5433/rose_test?user=rose&password=password"),
+            MongoConfig("mongodb://root:example@localhost:27018"),
             JWTConfig(
                 "wawawawawawawawawa",
                 "localhost",

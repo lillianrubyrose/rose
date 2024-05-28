@@ -1,6 +1,7 @@
 package cc.sapphiretech.rose.services
 
 import cc.sapphiretech.rose.db.RolesTable
+import cc.sapphiretech.rose.ext.lazyInject
 import cc.sapphiretech.rose.ext.transaction
 import cc.sapphiretech.rose.ksp.GenericEnumError
 import cc.sapphiretech.rose.models.RosePermission
@@ -35,6 +36,8 @@ private suspend fun Query.mapToRoseRole(): Iterable<RoseRole> {
 }
 
 class RoleService {
+    private val auditLogService by lazyInject<AuditLogService>()
+
     suspend fun findById(id: Int): RoseRole? = transaction {
         RolesTable.selectAll().where(RolesTable.id.eq(id)).limit(1).mapToRoseRole().singleOrNull()
     }
@@ -55,7 +58,7 @@ class RoleService {
         return transaction { RolesTable.selectAll().map { it.mapToRoseRole() } }
     }
 
-    suspend fun create(name: String): Result<RoseRole, CreateError> {
+    suspend fun create(creatorId: Int, name: String): Result<RoseRole, CreateError> {
         if (!validName(name)) {
             return Err(CreateError.InvalidName)
         }
@@ -76,6 +79,8 @@ class RoleService {
                 it[displayName] = name
             }.single()
         }.mapToRoseRole()
+
+        auditLogService.onRoleCreate(creatorId, role)
         return Ok(role)
     }
 

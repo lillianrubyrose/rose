@@ -2,6 +2,7 @@ package cc.sapphiretech.rose.routes
 
 import cc.sapphiretech.rose.generated.toWebError
 import cc.sapphiretech.rose.models.BasicWebResponse
+import cc.sapphiretech.rose.services.AuditLogService
 import cc.sapphiretech.rose.services.JWTService
 import cc.sapphiretech.rose.services.UserService
 import com.github.michaelbull.result.getOrElse
@@ -42,6 +43,7 @@ fun Routing.postAuthRegister() {
 fun Routing.postAuthLogin() {
     val userService by inject<UserService>()
     val jwtService by inject<JWTService>()
+    val auditLogService by inject<AuditLogService>()
 
     post<AuthLogin>("/auth/login") { body ->
         val user = userService.findByUsername(body.username).getOrElse {
@@ -55,6 +57,8 @@ fun Routing.postAuthLogin() {
         }
 
         if (user.passwordHash.argonVerify(body.password)) {
+            auditLogService.onLogin(user.id)
+
             val token = jwtService.createAccessToken(user.id)
             call.respond(BasicWebResponse(token))
         } else {

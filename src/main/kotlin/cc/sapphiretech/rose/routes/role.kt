@@ -2,6 +2,7 @@ package cc.sapphiretech.rose.routes
 
 import cc.sapphiretech.rose.ext.authGet
 import cc.sapphiretech.rose.ext.authPost
+import cc.sapphiretech.rose.ext.authedUser
 import cc.sapphiretech.rose.generated.toWebError
 import cc.sapphiretech.rose.models.RosePermission
 import cc.sapphiretech.rose.models.RoseRoleDTO
@@ -29,7 +30,7 @@ fun Routing.postRoleCreate() {
     val roleService by inject<RoleService>()
 
     authPost<RoleCreate>("/role", arrayOf(RosePermission.MANAGE_ROLES)) { body ->
-        val role = roleService.create(body.name).getOrElse { err ->
+        val role = roleService.create(call.authedUser().id, body.name).getOrElse { err ->
             call.respond(HttpStatusCode.UnprocessableEntity, err.toWebError())
             return@authPost
         }

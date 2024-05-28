@@ -4,8 +4,8 @@ import cc.sapphiretech.rose.plugins.*
 import io.ktor.server.application.*
 
 fun Application.configureApp(config: Config) {
-    configureKoin(config)
-    configureDatabase()
+    val dbModule = configureDatabase(config)
+    configureKoin(config, dbModule)
     configureMisc()
     configureCors()
     configureAuthentication()

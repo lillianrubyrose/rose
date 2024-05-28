@@ -51,6 +51,8 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.3")
     implementation("org.flywaydb:flyway-core:10.13.0")
     implementation("org.flywaydb:flyway-database-postgresql:10.13.0")
+    implementation("org.mongodb:mongodb-driver-kotlin-coroutine:5.1.0")
+    implementation("org.mongodb:bson-kotlinx:5.1.0")
 
     implementation("com.github.lilyrrose:argon-dsl:82014fcb69")
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")

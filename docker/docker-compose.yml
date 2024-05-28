@@ -1,5 +1,6 @@
 services:
   postgres:
+    container_name: rose-postgres
     image: postgres:16-alpine
     ports:
       - 5432:5432
@@ -10,6 +11,7 @@ services:
       POSTGRES_PASSWORD: password
 
   postgres-test:
+    container_name: rose-postgres-test
     image: postgres:16-alpine
     ports:
       - 5433:5432
@@ -18,3 +20,23 @@ services:
       POSTGRES_DB: rose_test
       POSTGRES_USER: rose
       POSTGRES_PASSWORD: password
+
+  mongo:
+    container_name: rose-mongo
+    image: mongo
+    ports:
+      - 27017:27017
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+
+  mongo-test:
+    container_name: rose-mongo-test
+    image: mongo
+    ports:
+      - 27018:27017
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
